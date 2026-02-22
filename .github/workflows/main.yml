@@ -1,10 +1,8 @@
 name: Build Chiaki-ng Windows (Anti-Recoil)
-
 on:
   push:
     branches: [ "main", "master" ]
   workflow_dispatch:
-
 jobs:
   build:
     runs-on: windows-latest
@@ -12,13 +10,11 @@ jobs:
     defaults:
       run:
         shell: msys2 {0}
-
     steps:
     - name: Checkout Repository
       uses: actions/checkout@v4
       with:
         submodules: recursive
-
     - name: Setup MSYS2
       uses: msys2/setup-msys2@v2
       with:
@@ -37,15 +33,12 @@ jobs:
           mingw-w64-ucrt-x86_64-python-pip
           mingw-w64-ucrt-x86_64-hidapi
           mingw-w64-ucrt-x86_64-SDL2
-          mingw-w64-ucrt-x86_64-libargp
-
     - name: Install Protoc and Python Tools
       run: |
         curl -LO https://github.com/protocolbuffers/protobuf/releases/download/v3.20.3/protoc-3.20.3-win64.zip
         unzip protoc-3.20.3-win64.zip -d protoc3
         cp protoc3/bin/protoc.exe /ucrt64/bin/
         python3 -m pip install "protobuf<=3.20.3" setuptools
-
     - name: Configure CMake
       run: |
         cmake -S . -B build -G "Ninja" \
@@ -55,10 +48,8 @@ jobs:
           -DCHIAKI_CLI_ARGP_STANDALONE=ON \
           -DCHIAKI_USE_SYSTEM_NANOPB=OFF \
           -DCMAKE_POLICY_VERSION_MINIMUM=3.5
-
     - name: Build
       run: cmake --build build
-
     - name: Prepare Artifacts
       run: |
         mkdir -p release
@@ -70,8 +61,6 @@ jobs:
         cp /ucrt64/bin/libwinpthread-*.dll release/ || true
         cp /ucrt64/bin/SDL2.dll release/ || true
         cp /ucrt64/bin/libhidapi-*.dll release/ || true
-        cp /ucrt64/bin/libargp-*.dll release/ || true
-
     - name: Upload Build
       uses: actions/upload-artifact@v4
       with:
