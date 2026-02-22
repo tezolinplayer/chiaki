@@ -37,14 +37,14 @@ jobs:
           mingw-w64-ucrt-x86_64-python-pip
           mingw-w64-ucrt-x86_64-hidapi
           mingw-w64-ucrt-x86_64-SDL2
-          mingw-w64-ucrt-x86_64-libargp
+          mingw-w64-ucrt-x86_64-argp-standalone
 
     - name: Install Protoc and Python Tools
       run: |
         curl -LO https://github.com/protocolbuffers/protobuf/releases/download/v3.20.3/protoc-3.20.3-win64.zip
         unzip protoc-3.20.3-win64.zip -d protoc3
         cp protoc3/bin/protoc.exe /ucrt64/bin/
-        python3 -m pip install "protobuf<=3.20.3" setuptools
+        python3 -m pip install "protobuf<=3.20.3" setuptools --break-system-packages || python3 -m pip install "protobuf<=3.20.3" setuptools
 
     - name: Configure CMake
       run: |
@@ -70,7 +70,6 @@ jobs:
         cp /ucrt64/bin/libwinpthread-*.dll release/ || true
         cp /ucrt64/bin/SDL2.dll release/ || true
         cp /ucrt64/bin/libhidapi-*.dll release/ || true
-        cp /ucrt64/bin/libargp-*.dll release/ || true
 
     - name: Upload Build
       uses: actions/upload-artifact@v4
