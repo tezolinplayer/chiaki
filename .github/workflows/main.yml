@@ -37,7 +37,7 @@ jobs:
           mingw-w64-ucrt-x86_64-python-pip
           mingw-w64-ucrt-x86_64-hidapi
           mingw-w64-ucrt-x86_64-SDL2
-          mingw-w64-ucrt-x86_64-libargp
+          mingw-w64-ucrt-x86_64-argp-standalone
 
     - name: Install Protoc 3.20 and Python Tools
       run: |
@@ -70,7 +70,6 @@ jobs:
         cp /ucrt64/bin/libwinpthread-*.dll release/ || true
         cp /ucrt64/bin/SDL2.dll release/ || true
         cp /ucrt64/bin/libhidapi-*.dll release/ || true
-        cp /ucrt64/bin/libargp-*.dll release/ || true
 
     - name: Upload Build
       uses: actions/upload-artifact@v4
