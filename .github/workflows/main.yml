@@ -15,6 +15,7 @@ jobs:
       uses: actions/checkout@v4
       with:
         submodules: recursive
+
     - name: Setup MSYS2
       uses: msys2/setup-msys2@v2
       with:
@@ -31,14 +32,40 @@ jobs:
           mingw-w64-ucrt-x86_64-openssl
           mingw-w64-ucrt-x86_64-opus
           mingw-w64-ucrt-x86_64-python-pip
+          mingw-w64-ucrt-x86_64-python-setuptools
           mingw-w64-ucrt-x86_64-hidapi
           mingw-w64-ucrt-x86_64-SDL2
+
+    - name: Patch cli/CMakeLists.txt
+      run: |
+        cat > cli/CMakeLists.txt << 'EOF'
+        set(SOURCE
+            include/chiaki-cli.h
+            src/discover.c
+            src/wakeup.c)
+        add_library(chiaki-cli-lib STATIC ${SOURCE})
+        target_include_directories(chiaki-cli-lib PUBLIC "include")
+        target_link_libraries(chiaki-cli-lib chiaki-lib)
+        if(CHIAKI_CLI_ARGP_STANDALONE)
+            find_library(ARGP_LIBRARY NAMES argp libargp argp-standalone)
+            if(ARGP_LIBRARY)
+                target_link_libraries(chiaki-cli-lib "${ARGP_LIBRARY}")
+            else()
+                message(FATAL_ERROR "argp library not found!")
+            endif()
+        endif()
+        add_executable(chiaki-cli src/main.c)
+        target_link_libraries(chiaki-cli chiaki-cli-lib)
+        install(TARGETS chiaki-cli)
+        EOF
+
     - name: Install Protoc and Python Tools
       run: |
         curl -LO https://github.com/protocolbuffers/protobuf/releases/download/v3.20.3/protoc-3.20.3-win64.zip
         unzip protoc-3.20.3-win64.zip -d protoc3
         cp protoc3/bin/protoc.exe /ucrt64/bin/
         python3 -m pip install "protobuf<=3.20.3" setuptools
+
     - name: Configure CMake
       run: |
         cmake -S . -B build -G "Ninja" \
@@ -47,9 +74,12 @@ jobs:
           -DCHIAKI_ENABLE_GUI=OFF \
           -DCHIAKI_CLI_ARGP_STANDALONE=ON \
           -DCHIAKI_USE_SYSTEM_NANOPB=OFF \
-          -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+          -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
+          -Wno-dev
+
     - name: Build
       run: cmake --build build
+
     - name: Prepare Artifacts
       run: |
         mkdir -p release
@@ -61,6 +91,7 @@ jobs:
         cp /ucrt64/bin/libwinpthread-*.dll release/ || true
         cp /ucrt64/bin/SDL2.dll release/ || true
         cp /ucrt64/bin/libhidapi-*.dll release/ || true
+
     - name: Upload Build
       uses: actions/upload-artifact@v4
       with:
