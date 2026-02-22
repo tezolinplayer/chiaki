@@ -28,8 +28,6 @@ find_package(Threads REQUIRED)
 find_package(OpenSSL REQUIRED)
 find_package(PkgConfig REQUIRED)
 find_package(FFMPEG COMPONENTS avcodec avutil REQUIRED)
-
-# AS DUAS PEÇAS QUE FALTAVAM PARA O CÓDIGO LIBERAR O STREAM E O REGIST:
 find_package(SDL2 REQUIRED)
 find_package(ZLIB REQUIRED)
 
@@ -41,7 +39,9 @@ if(CHIAKI_CLI_ARGP_STANDALONE)
     endif()
 endif()
 
-add_definitions(-DCHIAKI_VERSION=\"${CHIAKI_VERSION}\")
+# O GOLPE FINAL: Forçamos o código a saber que tem vídeo, sem precisar de arquivos externos.
+add_definitions(-DCHIAKI_VERSION=\"${CHIAKI_VERSION}\" -DCHIAKI_HAVE_VIDEO_DECODER)
+
 add_subdirectory(third-party)
 add_subdirectory(lib)
 add_subdirectory(cli)
