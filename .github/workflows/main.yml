@@ -60,9 +60,9 @@ jobs:
         sed -i 's/extern int getopt ();/extern int getopt (int, char *const *, const char *);/g' src/argp-getopt.h
         cmake -S . -B build -G "Ninja" -DCMAKE_BUILD_TYPE=Release
         cmake --build build
-        cp src/argp.h /ucrt64/include/
-        cp build/libargp.a /ucrt64/lib/
-        cp build/libargp-standalone.a /ucrt64/lib/
+        find . -name "argp.h" -exec cp {} /ucrt64/include/ \;
+        find build -name "*.a" -exec cp {} /ucrt64/lib/libargp.a \;
+        find build -name "*.a" -exec cp {} /ucrt64/lib/libargp-standalone.a \;
         cd ..
         
         # 2. Corrigir Sockets no Windows
