@@ -38,6 +38,7 @@ jobs:
           mingw-w64-ucrt-x86_64-hidapi
           mingw-w64-ucrt-x86_64-SDL2
           mingw-w64-ucrt-x86_64-ffmpeg
+          mingw-w64-ucrt-x86_64-pkgconf
 
     - name: Install Protoc and Python Tools
       run: |
