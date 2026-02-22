@@ -29,6 +29,10 @@ find_package(OpenSSL REQUIRED)
 find_package(PkgConfig REQUIRED)
 find_package(FFMPEG COMPONENTS avcodec avutil REQUIRED)
 
+# AS DUAS PEÇAS QUE FALTAVAM PARA O CÓDIGO LIBERAR O STREAM E O REGIST:
+find_package(SDL2 REQUIRED)
+find_package(ZLIB REQUIRED)
+
 if(CHIAKI_CLI_ARGP_STANDALONE)
     find_library(ARGP_LIBRARY NAMES argp libargp argp-standalone)
     if(ARGP_LIBRARY)
