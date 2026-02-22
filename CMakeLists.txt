@@ -18,7 +18,6 @@ set(CHIAKI_VERSION "2.1.1")
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 set(CMAKE_CXX_STANDARD 11)
 
-# Força o compilador a olhar nas pastas certas do UCRT64
 include_directories("C:/msys64/ucrt64/include")
 include_directories("/ucrt64/include")
 link_directories("C:/msys64/ucrt64/lib")
@@ -27,6 +26,8 @@ link_directories("/ucrt64/lib")
 find_package(PythonInterp 3 REQUIRED)
 find_package(Threads REQUIRED)
 find_package(OpenSSL REQUIRED)
+find_package(PkgConfig REQUIRED)
+find_package(FFMPEG COMPONENTS avcodec avutil REQUIRED)
 
 if(CHIAKI_CLI_ARGP_STANDALONE)
     find_library(ARGP_LIBRARY NAMES argp libargp argp-standalone)
