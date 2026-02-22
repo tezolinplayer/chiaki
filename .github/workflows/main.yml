@@ -38,14 +38,12 @@ jobs:
 
     - name: Build and install argp-standalone
       run: |
-        curl -LO https://github.com/nicowillis/argp-standalone/archive/refs/heads/master.tar.gz || \
         curl -LO https://github.com/pffang/argp-standalone/archive/refs/heads/master.tar.gz
         tar xzf master.tar.gz
         cd argp-standalone-master
         cmake -S . -B build -G "Ninja" \
           -DCMAKE_BUILD_TYPE=Release \
-          -DCMAKE_INSTALL_PREFIX=/ucrt64 \
-          -DARGP_STANDALONE_BUILD_TESTS=OFF
+          -DCMAKE_INSTALL_PREFIX=/ucrt64
         cmake --build build
         cmake --install build
         echo "=== Arquivos instalados ==="
