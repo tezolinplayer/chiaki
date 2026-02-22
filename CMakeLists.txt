@@ -28,10 +28,6 @@ find_package(PythonInterp 3 REQUIRED)
 find_package(Threads REQUIRED)
 find_package(OpenSSL REQUIRED)
 
-# AS DUAS LINHAS MÁGICAS PARA ACHAR O VÍDEO
-find_package(PkgConfig REQUIRED)
-find_package(FFMPEG COMPONENTS avcodec avutil REQUIRED)
-
 if(CHIAKI_CLI_ARGP_STANDALONE)
     find_library(ARGP_LIBRARY NAMES argp libargp argp-standalone)
     if(ARGP_LIBRARY)
