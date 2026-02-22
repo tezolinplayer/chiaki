@@ -30,14 +30,12 @@ jobs:
           mingw-w64-x86_64-toolchain
           mingw-w64-x86_64-cmake
           mingw-w64-x86_64-ninja
-          mingw-w64-x86_64-qt5-base
-          mingw-w64-x86_64-qt5-multimedia
-          mingw-w64-x86_64-qt5-svg
           mingw-w64-x86_64-json-c
           mingw-w64-x86_64-miniupnpc
           mingw-w64-x86_64-ffmpeg
           mingw-w64-x86_64-openssl
           mingw-w64-x86_64-opus
+          mingw-w64-x86_64-nanopb
           mingw-w64-x86_64-python-pip
           mingw-w64-x86_64-hidapi
           mingw-w64-x86_64-SDL2
@@ -45,18 +43,11 @@ jobs:
           mingw-w64-x86_64-vulkan-headers
           mingw-w64-x86_64-libunwind
 
-    - name: Check Files (Debug)
-      run: |
-        echo "Verificando se o antirecoil existe..."
-        ls -l lib/src/antirecoil.c
-        ls -l lib/include/chiaki/antirecoil.h
-
     - name: Install Protoc 3.20 and Python Tools
       run: |
         curl -LO https://github.com/protocolbuffers/protobuf/releases/download/v3.20.3/protoc-3.20.3-win64.zip
         unzip protoc-3.20.3-win64.zip -d protoc3
         cp protoc3/bin/protoc.exe /mingw64/bin/
-        # Adicionado setuptools para corrigir o erro do Python 3.14
         python3 -m pip install "protobuf<=3.20.3" setuptools
 
     - name: Configure CMake
@@ -66,6 +57,7 @@ jobs:
           -DCHIAKI_ENABLE_CLI=ON \
           -DCHIAKI_ENABLE_GUI=OFF \
           -DCHIAKI_ENABLE_TESTS=OFF \
+          -DCHIAKI_USE_SYSTEM_NANOPB=ON \
           -DCMAKE_POLICY_VERSION_MINIMUM=3.5
 
     - name: Build
@@ -74,20 +66,12 @@ jobs:
     - name: Prepare Artifacts
       run: |
         mkdir -p release
-        # Agora buscamos o executável na pasta cli
         cp build/cli/chiaki-cli.exe release/
-        # Copiamos apenas as DLLs essenciais para o funcionamento do motor (CLI)
         cp /mingw64/bin/libcrypto-*.dll release/ || true
         cp /mingw64/bin/libssl-*.dll release/ || true
-        cp /mingw64/bin/libopus-*.dll release/ || true
-        cp /mingw64/bin/libhidapi-*.dll release/ || true
-        cp /mingw64/bin/SDL2.dll release/ || true
-        cp /mingw64/bin/libjson-c-*.dll release/ || true
-        cp /mingw64/bin/libminiupnpc*.dll release/ || true
         cp /mingw64/bin/libstdc++-6.dll release/ || true
         cp /mingw64/bin/libgcc_s_seh-1.dll release/ || true
         cp /mingw64/bin/libwinpthread-1.dll release/ || true
-        cp /mingw64/bin/zlib1.dll release/ || true
 
     - name: Upload Build
       uses: actions/upload-artifact@v4
