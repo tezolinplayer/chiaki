@@ -9,10 +9,14 @@ endmacro()
 option(CHIAKI_ENABLE_CLI ON)
 option(CHIAKI_ENABLE_GUI OFF)
 option(CHIAKI_LIB_ENABLE_OPUS ON)
-set(CHIAKI_FFMPEG_DEFAULT OFF)
-tri_option(CHIAKI_ENABLE_FFMPEG_DECODER "Enable FFMPEG" OFF)
 set(CHIAKI_USE_SYSTEM_NANOPB OFF CACHE BOOL "" FORCE)
 option(CHIAKI_CLI_ARGP_STANDALONE ON)
+
+# ---------------------------------------------------------
+# A ORDEM PARA O CMAKE: Empacote o arquivo de Stream!
+set(CHIAKI_HAVE_VIDEO_DECODER ON)
+set(CHIAKI_ENABLE_FFMPEG_DECODER ON)
+# ---------------------------------------------------------
 
 set(CHIAKI_VERSION "2.1.1")
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
@@ -39,7 +43,7 @@ if(CHIAKI_CLI_ARGP_STANDALONE)
     endif()
 endif()
 
-# O GOLPE FINAL: Forçamos o código a saber que tem vídeo, sem precisar de arquivos externos.
+# A ORDEM PARA O COMPILADOR
 add_definitions(-DCHIAKI_VERSION=\"${CHIAKI_VERSION}\" -DCHIAKI_HAVE_VIDEO_DECODER)
 
 add_subdirectory(third-party)
