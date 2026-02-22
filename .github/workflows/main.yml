@@ -38,13 +38,12 @@ jobs:
 
     - name: Build and install argp-standalone
       run: |
-        curl -LO https://www.lysator.liu.se/~nisse/misc/argp-standalone-1.3.tar.gz
-        tar xzf argp-standalone-1.3.tar.gz
-        cd argp-standalone-1.3
-        gcc -O2 -c argp*.c -I.
-        ar rcs libargp.a argp*.o
-        cp libargp.a /ucrt64/lib/
-        cp argp.h /ucrt64/include/
+        curl -LO https://github.com/tom42/argp-standalone/archive/refs/heads/master.tar.gz
+        tar xzf master.tar.gz
+        cd argp-standalone-master
+        cmake -S . -B build -G "Ninja" -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/ucrt64
+        cmake --build build
+        cmake --install build
 
     - name: Patch cli/CMakeLists.txt
       run: |
