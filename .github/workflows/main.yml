@@ -1,0 +1,93 @@
+name: Build Chiaki-ng Windows (Anti-Recoil)
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    
+    defaults:
+      run:
+        shell: msys2 {0}
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - name: Setup MSYS2
+      uses: msys2/setup-msys2@v2
+      with:
+        msystem: MINGW64
+        update: true
+        install: >-
+          git
+          mingw-w64-x86_64-toolchain
+          mingw-w64-x86_64-cmake
+          mingw-w64-x86_64-ninja
+          mingw-w64-x86_64-qt5-base
+          mingw-w64-x86_64-qt5-multimedia
+          mingw-w64-x86_64-qt5-svg
+          mingw-w64-x86_64-json-c
+          mingw-w64-x86_64-miniupnpc
+          mingw-w64-x86_64-ffmpeg
+          mingw-w64-x86_64-openssl
+          mingw-w64-x86_64-opus
+          mingw-w64-x86_64-protobuf
+          mingw-w64-x86_64-hidapi
+          mingw-w64-x86_64-SDL2
+          mingw-w64-x86_64-libplacebo
+          mingw-w64-x86_64-vulkan-headers
+          mingw-w64-x86_64-libunwind
+
+    - name: Check Files (Debug)
+      run: |
+        echo "Verificando se o antirecoil existe..."
+        ls -l lib/src/antirecoil.c
+        ls -l lib/include/chiaki/antirecoil.h
+
+    - name: Configure CMake
+      run: |
+        cmake -S . -B build -G "Ninja" \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DCHIAKI_ENABLE_CLI=OFF \
+          -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+
+    - name: Build
+      run: cmake --build build
+
+    - name: Prepare Artifacts
+      run: |
+        mkdir -p release
+        cp build/gui/chiaki.exe release/
+        windeployqt --dir release release/chiaki.exe
+        cp /mingw64/bin/libavcodec-*.dll release/ || true
+        cp /mingw64/bin/libavdevice-*.dll release/ || true
+        cp /mingw64/bin/libavfilter-*.dll release/ || true
+        cp /mingw64/bin/libavformat-*.dll release/ || true
+        cp /mingw64/bin/libavutil-*.dll release/ || true
+        cp /mingw64/bin/libswresample-*.dll release/ || true
+        cp /mingw64/bin/libswscale-*.dll release/ || true
+        cp /mingw64/bin/libcrypto-*.dll release/ || true
+        cp /mingw64/bin/libssl-*.dll release/ || true
+        cp /mingw64/bin/libopus-*.dll release/ || true
+        cp /mingw64/bin/libprotobuf-*.dll release/ || true
+        cp /mingw64/bin/libhidapi-*.dll release/ || true
+        cp /mingw64/bin/SDL2.dll release/ || true
+        cp /mingw64/bin/libjson-c-*.dll release/ || true
+        cp /mingw64/bin/libminiupnpc*.dll release/ || true
+        cp /mingw64/bin/libplacebo-*.dll release/ || true
+        cp /mingw64/bin/libstdc++-6.dll release/ || true
+        cp /mingw64/bin/libgcc_s_seh-1.dll release/ || true
+        cp /mingw64/bin/libwinpthread-1.dll release/ || true
+        cp /mingw64/bin/zlib1.dll release/ || true
+
+    - name: Upload Build
+      uses: actions/upload-artifact@v4
+      with:
+        name: Chiaki-AntiRecoil-Windows
+        path: release/
