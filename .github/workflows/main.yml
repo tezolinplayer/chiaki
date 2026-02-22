@@ -35,7 +35,6 @@ jobs:
           mingw-w64-x86_64-ffmpeg
           mingw-w64-x86_64-openssl
           mingw-w64-x86_64-opus
-          mingw-w64-x86_64-nanopb
           mingw-w64-x86_64-python-pip
           mingw-w64-x86_64-hidapi
           mingw-w64-x86_64-SDL2
@@ -57,7 +56,7 @@ jobs:
           -DCHIAKI_ENABLE_CLI=ON \
           -DCHIAKI_ENABLE_GUI=OFF \
           -DCHIAKI_ENABLE_TESTS=OFF \
-          -DCHIAKI_USE_SYSTEM_NANOPB=ON \
+          -DCHIAKI_USE_SYSTEM_NANOPB=OFF \
           -DCMAKE_POLICY_VERSION_MINIMUM=3.5
 
     - name: Build
