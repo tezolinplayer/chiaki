@@ -49,13 +49,13 @@ jobs:
       run: |
         git clone https://github.com/tom42/argp-standalone.git
         cd argp-standalone
-        # Cirurgia no código: Atualiza a função antiga para o padrão do compilador GCC 15
         sed -i 's/extern int getopt ();/extern int getopt (int, char *const *, const char *);/g' src/argp-getopt.h
         cmake -S . -B build -G "Ninja" -DCMAKE_BUILD_TYPE=Release
         cmake --build build
-        cp argp.h /ucrt64/include/
-        cp build/libargp.a /ucrt64/lib/libargp.a || true
-        cp build/libargp.a /ucrt64/lib/libargp-standalone.a || true
+        # Busca Implacável: Encontra e copia os arquivos gerados onde quer que estejam
+        find . -name "argp.h" -exec cp {} /ucrt64/include/ \;
+        find build -name "*.a" -exec cp {} /ucrt64/lib/libargp.a \;
+        find build -name "*.a" -exec cp {} /ucrt64/lib/libargp-standalone.a \;
 
     - name: Configure CMake
       run: |
