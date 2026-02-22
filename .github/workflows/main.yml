@@ -53,7 +53,7 @@ jobs:
 
     - name: Install Python Protobuf
       run: |
-        python3 -m pip install protobuf
+        python3 -m pip install "protobuf<=3.20.3"
 
     - name: Configure CMake
       run: |
