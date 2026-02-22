@@ -1,4 +1,4 @@
-name: Build Chiaki-ng Windows (Anti-Recoil)
+name: Build Chiaki Windows (Anti-Recoil)
 
 on:
   push:
@@ -27,6 +27,7 @@ jobs:
         install: >-
           git
           unzip
+          curl
           mingw-w64-ucrt-x86_64-toolchain
           mingw-w64-ucrt-x86_64-cmake
           mingw-w64-ucrt-x86_64-ninja
@@ -45,21 +46,26 @@ jobs:
         curl -LO https://github.com/protocolbuffers/protobuf/releases/download/v3.20.3/protoc-3.20.3-win64.zip
         unzip protoc-3.20.3-win64.zip -d protoc3
         cp protoc3/bin/protoc.exe /ucrt64/bin/
-        python3 -m pip install "protobuf<=3.20.3" setuptools --break-system-packages || python3 -m pip install "protobuf<=3.20.3" setuptools
+        python3 -m pip install "protobuf<=3.20.3" setuptools --break-system-packages || true
 
-    - name: Compile argp-standalone & Patch CLI (The Hack!)
+    - name: RESTAURAR O CMAKELISTS ORIGINAL (A Cura)
       run: |
+        curl -s https://raw.githubusercontent.com/srpc/chiaki/master/CMakeLists.txt -o CMakeLists.txt
+
+    - name: Compile argp-standalone & Patch Source
+      run: |
+        # 1. Resolver o argp
         git clone https://github.com/tom42/argp-standalone.git
         cd argp-standalone
         sed -i 's/extern int getopt ();/extern int getopt (int, char *const *, const char *);/g' src/argp-getopt.h
         cmake -S . -B build -G "Ninja" -DCMAKE_BUILD_TYPE=Release
         cmake --build build
-        find . -name "argp.h" -exec cp {} /ucrt64/include/ \;
-        find build -name "*.a" -exec cp {} /ucrt64/lib/libargp.a \;
-        find build -name "*.a" -exec cp {} /ucrt64/lib/libargp-standalone.a \;
+        cp src/argp.h /ucrt64/include/
+        cp build/libargp.a /ucrt64/lib/
+        cp build/libargp-standalone.a /ucrt64/lib/
         cd ..
         
-        # Cirurgia de Rede
+        # 2. Corrigir Sockets no Windows
         sed -i 's/#include <sys\/socket.h>/#include <chiaki\/sock.h>/g' cli/src/discover.c cli/src/wakeup.c || true
         sed -i 's/#include <netdb.h>//g' cli/src/discover.c cli/src/wakeup.c || true
         sed -i 's/#include <netinet\/in.h>//g' cli/src/discover.c cli/src/wakeup.c || true
@@ -67,7 +73,7 @@ jobs:
         sed -i 's/sleep(1)/_sleep(1000)/g' cli/src/discover.c || true
         sed -i '1i #include <stdlib.h>' cli/src/discover.c || true
         
-        # Cirurgia do FFMPEG 7.0
+        # 3. Corrigir erro do FFMPEG 7.0
         sed -i 's/avcodec_close(decoder->codec_context);/avcodec_free_context(\&decoder->codec_context);/g' lib/src/ffmpegdecoder.c || true
 
     - name: Configure CMake
@@ -76,10 +82,7 @@ jobs:
           -DCMAKE_BUILD_TYPE=Release \
           -DCHIAKI_ENABLE_CLI=ON \
           -DCHIAKI_ENABLE_GUI=OFF \
-          -DCHIAKI_CLI_ARGP_STANDALONE=ON \
-          -DCHIAKI_USE_SYSTEM_NANOPB=OFF \
-          -DCHIAKI_ENABLE_FFMPEG_DECODER=ON \
-          -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+          -DCHIAKI_ENABLE_FFMPEG_DECODER=ON
 
     - name: Build
       run: cmake --build build
@@ -97,6 +100,7 @@ jobs:
         cp /ucrt64/bin/libhidapi-*.dll release/ || true
         cp /ucrt64/bin/av*.dll release/ || true
         cp /ucrt64/bin/sw*.dll release/ || true
+        cp /ucrt64/bin/libz-*.dll release/ || true
 
     - name: Upload Build
       uses: actions/upload-artifact@v4
