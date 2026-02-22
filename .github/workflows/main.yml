@@ -1,81 +1,86 @@
-name: Build Chiaki-ng Windows
+name: Build Chiaki-ng Windows (Anti-Recoil)
+
 on:
   push:
     branches: [ "main", "master" ]
   workflow_dispatch:
+
 jobs:
   build:
     runs-on: windows-latest
+    
     defaults:
       run:
         shell: msys2 {0}
+
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-        with:
-          submodules: recursive
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
 
-      - name: Setup MSYS2
-        uses: msys2/setup-msys2@v2
-        with:
-          msystem: UCRT64
-          update: true
-          install: >-
-            git
-            unzip
-            mingw-w64-ucrt-x86_64-toolchain
-            mingw-w64-ucrt-x86_64-cmake
-            mingw-w64-ucrt-x86_64-ninja
-            mingw-w64-ucrt-x86_64-openssl
-            mingw-w64-ucrt-x86_64-opus
-            mingw-w64-ucrt-x86_64-python-pip
-            mingw-w64-ucrt-x86_64-python-setuptools
-            mingw-w64-ucrt-x86_64-hidapi
-            mingw-w64-ucrt-x86_64-SDL2
-            mingw-w64-ucrt-x86_64-json-c
-            mingw-w64-ucrt-x86_64-miniupnpc
-            mingw-w64-ucrt-x86_64-qt6-base
-            mingw-w64-ucrt-x86_64-qt6-multimedia
-            mingw-w64-ucrt-x86_64-qt6-tools
+    - name: Setup MSYS2
+      uses: msys2/setup-msys2@v2
+      with:
+        msystem: UCRT64
+        update: true
+        install: >-
+          git
+          unzip
+          mingw-w64-ucrt-x86_64-toolchain
+          mingw-w64-ucrt-x86_64-cmake
+          mingw-w64-ucrt-x86_64-ninja
+          mingw-w64-ucrt-x86_64-json-c
+          mingw-w64-ucrt-x86_64-miniupnpc
+          mingw-w64-ucrt-x86_64-openssl
+          mingw-w64-ucrt-x86_64-opus
+          mingw-w64-ucrt-x86_64-python-pip
+          mingw-w64-ucrt-x86_64-hidapi
+          mingw-w64-ucrt-x86_64-SDL2
 
-      - name: Install Protoc
-        run: |
-          curl -LO https://github.com/protocolbuffers/protobuf/releases/download/v3.20.3/protoc-3.20.3-win64.zip
-          unzip protoc-3.20.3-win64.zip -d protoc3
-          cp protoc3/bin/protoc.exe /ucrt64/bin/
-          python3 -m pip install "protobuf<=3.20.3" setuptools
+    - name: Install Protoc and Python Tools
+      run: |
+        curl -LO https://github.com/protocolbuffers/protobuf/releases/download/v3.20.3/protoc-3.20.3-win64.zip
+        unzip protoc-3.20.3-win64.zip -d protoc3
+        cp protoc3/bin/protoc.exe /ucrt64/bin/
+        python3 -m pip install "protobuf<=3.20.3" setuptools
 
-      - name: Configure CMake
-        run: |
-          cmake -S . -B build -G "Ninja" \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DCHIAKI_ENABLE_CLI=OFF \
-            -DCHIAKI_ENABLE_GUI=ON \
-            -DCHIAKI_USE_SYSTEM_NANOPB=OFF \
-            -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
-            -DPython3_EXECUTABLE=/ucrt64/bin/python3.exe \
-            -DPYTHON_EXECUTABLE=/ucrt64/bin/python3.exe \
-            -Wno-dev
+    - name: Compile argp-standalone (The Hack!)
+      run: |
+        git clone https://github.com/tom42/argp-standalone.git
+        cd argp-standalone
+        cmake -S . -B build -G "Ninja" -DCMAKE_BUILD_TYPE=Release
+        cmake --build build
+        cp argp.h /ucrt64/include/
+        cp build/libargp.a /ucrt64/lib/ || true
 
-      - name: Build
-        run: cmake --build build
+    - name: Configure CMake
+      run: |
+        cmake -S . -B build -G "Ninja" \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DCHIAKI_ENABLE_CLI=ON \
+          -DCHIAKI_ENABLE_GUI=OFF \
+          -DCHIAKI_CLI_ARGP_STANDALONE=ON \
+          -DCHIAKI_USE_SYSTEM_NANOPB=OFF \
+          -DCMAKE_POLICY_VERSION_MINIMUM=3.5
 
-      - name: Prepare Artifacts
-        run: |
-          mkdir -p release
-          cp build/gui/chiaki.exe release/
-          cp /ucrt64/bin/libcrypto-*.dll release/ || true
-          cp /ucrt64/bin/libssl-*.dll release/ || true
-          cp /ucrt64/bin/libstdc++-6.dll release/ || true
-          cp /ucrt64/bin/libgcc_s_*.dll release/ || true
-          cp /ucrt64/bin/libwinpthread-*.dll release/ || true
-          cp /ucrt64/bin/SDL2.dll release/ || true
-          cp /ucrt64/bin/libhidapi-*.dll release/ || true
-          cp /ucrt64/bin/libopus-*.dll release/ || true
-          /ucrt64/bin/windeployqt6 release/chiaki.exe || true
+    - name: Build
+      run: cmake --build build
 
-      - name: Upload Build
-        uses: actions/upload-artifact@v4
-        with:
-          name: Chiaki-Windows
-          path: release/
+    - name: Prepare Artifacts
+      run: |
+        mkdir -p release
+        cp build/cli/chiaki-cli.exe release/
+        cp /ucrt64/bin/libcrypto-*.dll release/ || true
+        cp /ucrt64/bin/libssl-*.dll release/ || true
+        cp /ucrt64/bin/libstdc++-6.dll release/ || true
+        cp /ucrt64/bin/libgcc_s_*.dll release/ || true
+        cp /ucrt64/bin/libwinpthread-*.dll release/ || true
+        cp /ucrt64/bin/SDL2.dll release/ || true
+        cp /ucrt64/bin/libhidapi-*.dll release/ || true
+
+    - name: Upload Build
+      uses: actions/upload-artifact@v4
+      with:
+        name: Chiaki-CLI-AntiRecoil
+        path: release/
