@@ -1,9 +1,6 @@
 // SPDX-License-Identifier: LicenseRef-AGPL-3.0-only-OpenSSL
-
 #include <chiaki-cli.h>
-
 #include <argp.h>
-
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -13,7 +10,8 @@ static const char doc[] =
 	"\v"
 	"Supported commands are:\n"
 	"  discover    Discover Consoles.\n"
-	"  wakeup      Send Wakeup Packet.\n";
+	"  wakeup      Send Wakeup Packet.\n"
+	"  connect     Connect to PS4/PS5 (no audio/video).\n";
 
 #define ARG_KEY_VERBOSE 'v'
 
@@ -31,18 +29,14 @@ static int call_subcmd(struct argp_state *state, const char *name, int (*subcmd)
 {
 	if(state->next < 1 || state->argc < state->next)
 		return 1;
-
 	int argc = state->argc - state->next + 1;
 	char **argv = &state->argv[state->next - 1];
-
 	size_t l = strlen(state->name) + strlen(name) + 2;
 	argv[0] = malloc(l);
 	if(!argv[0])
 		return 1;
 	snprintf(argv[0], l, "%s %s", state->name, name);
-
 	int r = subcmd(state->input, argc, argv);
-
 	free(argv[0]);
 	return r;
 }
@@ -50,7 +44,6 @@ static int call_subcmd(struct argp_state *state, const char *name, int (*subcmd)
 static int parse_opt(int key, char *arg, struct argp_state *state)
 {
 	Context *ctx = state->input;
-
 	switch(key)
 	{
 		case ARG_KEY_VERBOSE:
@@ -61,6 +54,8 @@ static int parse_opt(int key, char *arg, struct argp_state *state)
 				exit(call_subcmd(state, "discover", chiaki_cli_cmd_discover));
 			else if(strcmp(arg, "wakeup") == 0)
 				exit(call_subcmd(state, "wakeup", chiaki_cli_cmd_wakeup));
+			else if(strcmp(arg, "connect") == 0)
+				exit(call_subcmd(state, "connect", chiaki_cli_cmd_connect));
 			// fallthrough
 		case ARGP_KEY_END:
 			argp_usage(state);
@@ -77,9 +72,6 @@ int main(int argc, char *argv[])
 {
 	Context ctx;
 	chiaki_log_init(&ctx.log, CHIAKI_LOG_ALL & ~CHIAKI_LOG_VERBOSE, chiaki_log_cb_print, NULL);
-
 	argp_parse(&argp, argc, argv, ARGP_IN_ORDER, NULL, &ctx);
-
 	return 0;
 }
-
