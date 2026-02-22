@@ -37,6 +37,8 @@ jobs:
           mingw-w64-ucrt-x86_64-python-pip
           mingw-w64-ucrt-x86_64-hidapi
           mingw-w64-ucrt-x86_64-SDL2
+          mingw-w64-ucrt-x86_64-ffmpeg
+          mingw-w64-ucrt-x86_64-pkgconf
 
     - name: Install Protoc and Python Tools
       run: |
@@ -57,7 +59,7 @@ jobs:
         find build -name "*.a" -exec cp {} /ucrt64/lib/libargp-standalone.a \;
         cd ..
         
-        # Cirurgia de Rede 
+        # Cirurgia de Rede
         sed -i 's/#include <sys\/socket.h>/#include <chiaki\/sock.h>/g' cli/src/discover.c cli/src/wakeup.c || true
         sed -i 's/#include <netdb.h>//g' cli/src/discover.c cli/src/wakeup.c || true
         sed -i 's/#include <netinet\/in.h>//g' cli/src/discover.c cli/src/wakeup.c || true
@@ -65,9 +67,8 @@ jobs:
         sed -i 's/sleep(1)/_sleep(1000)/g' cli/src/discover.c || true
         sed -i '1i #include <stdlib.h>' cli/src/discover.c || true
         
-        # O HACK DA VITÓRIA: Destranca os comandos 'regist' e 'stream' no menu mesmo sem o FFMPEG
-        sed -i 's/#ifdef CHIAKI_HAVE_VIDEO_DECODER//g' cli/src/main.c || true
-        sed -i 's/#endif \/\/ CHIAKI_HAVE_VIDEO_DECODER//g' cli/src/main.c || true
+        # Cirurgia do FFMPEG 7.0
+        sed -i 's/avcodec_close(decoder->codec_context);/avcodec_free_context(\&decoder->codec_context);/g' lib/src/ffmpegdecoder.c || true
 
     - name: Configure CMake
       run: |
@@ -77,7 +78,7 @@ jobs:
           -DCHIAKI_ENABLE_GUI=OFF \
           -DCHIAKI_CLI_ARGP_STANDALONE=ON \
           -DCHIAKI_USE_SYSTEM_NANOPB=OFF \
-          -DCHIAKI_ENABLE_FFMPEG_DECODER=OFF \
+          -DCHIAKI_ENABLE_FFMPEG_DECODER=ON \
           -DCMAKE_POLICY_VERSION_MINIMUM=3.5
 
     - name: Build
@@ -94,6 +95,8 @@ jobs:
         cp /ucrt64/bin/libwinpthread-*.dll release/ || true
         cp /ucrt64/bin/SDL2.dll release/ || true
         cp /ucrt64/bin/libhidapi-*.dll release/ || true
+        cp /ucrt64/bin/av*.dll release/ || true
+        cp /ucrt64/bin/sw*.dll release/ || true
 
     - name: Upload Build
       uses: actions/upload-artifact@v4
