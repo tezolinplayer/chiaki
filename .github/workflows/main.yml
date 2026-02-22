@@ -37,6 +37,7 @@ jobs:
           mingw-w64-ucrt-x86_64-python-pip
           mingw-w64-ucrt-x86_64-hidapi
           mingw-w64-ucrt-x86_64-SDL2
+          mingw-w64-ucrt-x86_64-ffmpeg
 
     - name: Install Protoc and Python Tools
       run: |
@@ -62,9 +63,7 @@ jobs:
         sed -i 's/#include <netdb.h>//g' cli/src/discover.c cli/src/wakeup.c || true
         sed -i 's/#include <netinet\/in.h>//g' cli/src/discover.c cli/src/wakeup.c || true
         sed -i 's/#include <arpa\/inet.h>//g' cli/src/discover.c cli/src/wakeup.c || true
-        # A Mágica de 1 letra: troca sleep do Linux por _sleep do Windows (que aceita 1 segundo)
         sed -i 's/sleep(1)/_sleep(1000)/g' cli/src/discover.c || true
-        # Adiciona a biblioteca do Windows que tem a função de sleep
         sed -i '1i #include <stdlib.h>' cli/src/discover.c || true
 
     - name: Configure CMake
@@ -75,6 +74,7 @@ jobs:
           -DCHIAKI_ENABLE_GUI=OFF \
           -DCHIAKI_CLI_ARGP_STANDALONE=ON \
           -DCHIAKI_USE_SYSTEM_NANOPB=OFF \
+          -DCHIAKI_ENABLE_FFMPEG_DECODER=ON \
           -DCMAKE_POLICY_VERSION_MINIMUM=3.5
 
     - name: Build
@@ -91,6 +91,8 @@ jobs:
         cp /ucrt64/bin/libwinpthread-*.dll release/ || true
         cp /ucrt64/bin/SDL2.dll release/ || true
         cp /ucrt64/bin/libhidapi-*.dll release/ || true
+        cp /ucrt64/bin/av*.dll release/ || true
+        cp /ucrt64/bin/sw*.dll release/ || true
 
     - name: Upload Build
       uses: actions/upload-artifact@v4
