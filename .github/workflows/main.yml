@@ -56,11 +56,16 @@ jobs:
         find build -name "*.a" -exec cp {} /ucrt64/lib/libargp.a \;
         find build -name "*.a" -exec cp {} /ucrt64/lib/libargp-standalone.a \;
         cd ..
-        # Cirurgia de Rede: Troca os cabeçalhos de Linux pelo padrão Windows do próprio Chiaki
+        
+        # Cirurgia de Rede e Compatibilidade Windows
         sed -i 's/#include <sys\/socket.h>/#include <chiaki\/sock.h>/g' cli/src/discover.c cli/src/wakeup.c || true
         sed -i 's/#include <netdb.h>//g' cli/src/discover.c cli/src/wakeup.c || true
         sed -i 's/#include <netinet\/in.h>//g' cli/src/discover.c cli/src/wakeup.c || true
         sed -i 's/#include <arpa\/inet.h>//g' cli/src/discover.c cli/src/wakeup.c || true
+        # A Mágica de 1 letra: troca sleep do Linux por _sleep do Windows (que aceita 1 segundo)
+        sed -i 's/sleep(1)/_sleep(1000)/g' cli/src/discover.c || true
+        # Adiciona a biblioteca do Windows que tem a função de sleep
+        sed -i '1i #include <stdlib.h>' cli/src/discover.c || true
 
     - name: Configure CMake
       run: |
