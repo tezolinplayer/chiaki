@@ -38,17 +38,110 @@ jobs:
 
     - name: Build and install argp-standalone
       run: |
-        curl -LO https://github.com/pffang/argp-standalone/archive/refs/heads/master.tar.gz
-        tar xzf master.tar.gz
-        cd argp-standalone-master
-        cmake -S . -B build -G "Ninja" \
-          -DCMAKE_BUILD_TYPE=Release \
-          -DCMAKE_INSTALL_PREFIX=/ucrt64
-        cmake --build build
-        cmake --install build
-        echo "=== Arquivos instalados ==="
-        find /ucrt64/include -name "argp*" 2>/dev/null
-        find /ucrt64/lib -name "libargp*" 2>/dev/null
+        mkdir -p /tmp/argp-build
+
+        cat > /ucrt64/include/argp.h << 'ARGP_H'
+#ifndef _ARGP_H
+#define _ARGP_H
+#include <stdio.h>
+#include <stddef.h>
+#ifdef __cplusplus
+extern "C" {
+#endif
+#define OPTION_HIDDEN   0x2
+#define OPTION_ALIAS    0x4
+#define OPTION_DOC      0x8
+#define OPTION_NO_USAGE 0x10
+struct argp_option {
+    const char *name;
+    int key;
+    const char *arg;
+    int flags;
+    const char *doc;
+    int group;
+};
+struct argp_state {
+    const void *root_argp;
+    int argc;
+    char **argv;
+    int next;
+    unsigned flags;
+    unsigned arg_num;
+    int quoted;
+    void *input;
+    void **child_inputs;
+    void *hook;
+    char *name;
+    FILE *err_stream;
+    FILE *out_stream;
+    void *pstate;
+};
+struct argp {
+    const struct argp_option *options;
+    int (*parser)(int, char*, struct argp_state*);
+    const char *args_doc;
+    const char *doc;
+    const void *children;
+    char *(*help_filter)(int, const char*, void*);
+    const char *argp_domain;
+};
+typedef int error_t;
+extern error_t argp_parse(const struct argp*, int, char**, unsigned, int*, void*);
+extern void argp_usage(const struct argp_state*);
+extern void argp_error(const struct argp_state*, const char*, ...);
+extern void argp_help(const struct argp*, FILE*, unsigned, char*);
+#define ARGP_ERR_UNKNOWN 7
+#define ARGP_KEY_ARG     0
+#define ARGP_KEY_END     1
+#define ARGP_KEY_NO_ARGS 3
+#define ARGP_KEY_INIT    4
+#define ARGP_KEY_FINI    7
+#define ARGP_KEY_SUCCESS 8
+#define ARGP_KEY_ERROR   9
+#ifdef __cplusplus
+}
+#endif
+#endif
+ARGP_H
+
+        cat > /tmp/argp-build/argp.c << 'ARGP_C'
+#include <argp.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+void argp_usage(const struct argp_state *state) { exit(1); }
+void argp_error(const struct argp_state *state, const char *fmt, ...) { exit(1); }
+void argp_help(const struct argp *argp, FILE *stream, unsigned flags, char *name) {}
+error_t argp_parse(const struct argp *argp, int argc, char **argv, unsigned flags, int *arg_index, void *input) {
+    int i;
+    for(i = 1; i < argc; i++) {
+        const struct argp_option *opt = argp->options;
+        int found = 0;
+        while(opt && (opt->name || opt->key)) {
+            char skey[3] = {'-', (char)opt->key, 0};
+            char lkey[64] = "--";
+            if(opt->name) strncat(lkey, opt->name, 60);
+            if((opt->key && strcmp(argv[i], skey) == 0) || (opt->name && strcmp(argv[i], lkey) == 0)) {
+                char *arg = NULL;
+                if(opt->arg && i+1 < argc) arg = argv[++i];
+                argp->parser(opt->key, arg, NULL);
+                found = 1;
+                break;
+            }
+            opt++;
+        }
+        if(!found) argp->parser(ARGP_KEY_ARG, argv[i], NULL);
+    }
+    argp->parser(ARGP_KEY_END, NULL, NULL);
+    return 0;
+}
+ARGP_C
+
+        gcc -O2 -I/ucrt64/include -c /tmp/argp-build/argp.c -o /tmp/argp-build/argp.o
+        ar rcs /ucrt64/lib/libargp.a /tmp/argp-build/argp.o
+        echo "=== Instalado ==="
+        ls /ucrt64/lib/libargp.a
+        ls /ucrt64/include/argp.h
 
     - name: Patch cli/CMakeLists.txt
       run: |
@@ -61,17 +154,11 @@ jobs:
         target_include_directories(chiaki-cli-lib PUBLIC "include")
         target_link_libraries(chiaki-cli-lib chiaki-lib)
         if(CHIAKI_CLI_ARGP_STANDALONE)
-            find_library(ARGP_LIBRARY NAMES argp libargp argp-standalone
+            find_library(ARGP_LIBRARY NAMES argp libargp
                 HINTS /ucrt64/lib)
-            find_path(ARGP_INCLUDE_DIR argp.h
-                HINTS /ucrt64/include/argp-standalone /ucrt64/include)
-            find_path(ARGP_CONFIG_DIR argp-config.h
-                HINTS /ucrt64/include/argp-standalone /ucrt64/include)
             if(ARGP_LIBRARY)
                 target_link_libraries(chiaki-cli-lib "${ARGP_LIBRARY}")
-                target_include_directories(chiaki-cli-lib PUBLIC
-                    "${ARGP_INCLUDE_DIR}"
-                    "${ARGP_CONFIG_DIR}")
+                target_include_directories(chiaki-cli-lib PUBLIC /ucrt64/include)
             else()
                 message(FATAL_ERROR "argp library not found!")
             endif()
