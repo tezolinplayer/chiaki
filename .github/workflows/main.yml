@@ -45,7 +45,7 @@ jobs:
         cp protoc3/bin/protoc.exe /ucrt64/bin/
         python3 -m pip install "protobuf<=3.20.3" setuptools --break-system-packages || python3 -m pip install "protobuf<=3.20.3" setuptools
 
-    - name: Compile argp-standalone & Patch Discover (The Hack!)
+    - name: Compile argp-standalone & Patch CLI (The Hack!)
       run: |
         git clone https://github.com/tom42/argp-standalone.git
         cd argp-standalone
@@ -56,9 +56,11 @@ jobs:
         find build -name "*.a" -exec cp {} /ucrt64/lib/libargp.a \;
         find build -name "*.a" -exec cp {} /ucrt64/lib/libargp-standalone.a \;
         cd ..
-        # Cirurgia: Apaga a linha que pede o netdb.h (que não existe no Windows)
-        sed -i 's/#include <netdb.h>//g' cli/src/discover.c
-        sed -i 's/#include <netdb.h>//g' cli/src/wakeup.c
+        # Cirurgia de Rede: Troca os cabeçalhos de Linux pelo padrão Windows do próprio Chiaki
+        sed -i 's/#include <sys\/socket.h>/#include <chiaki\/sock.h>/g' cli/src/discover.c cli/src/wakeup.c || true
+        sed -i 's/#include <netdb.h>//g' cli/src/discover.c cli/src/wakeup.c || true
+        sed -i 's/#include <netinet\/in.h>//g' cli/src/discover.c cli/src/wakeup.c || true
+        sed -i 's/#include <arpa\/inet.h>//g' cli/src/discover.c cli/src/wakeup.c || true
 
     - name: Configure CMake
       run: |
