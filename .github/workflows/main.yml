@@ -1,4 +1,4 @@
-name: Build Chiaki-ng Windows (Anti-Recoil)
+name: Build Chiaki-ng Windows
 on:
   push:
     branches: [ "main", "master" ]
@@ -26,76 +26,19 @@ jobs:
             mingw-w64-ucrt-x86_64-toolchain
             mingw-w64-ucrt-x86_64-cmake
             mingw-w64-ucrt-x86_64-ninja
-            mingw-w64-ucrt-x86_64-json-c
-            mingw-w64-ucrt-x86_64-miniupnpc
             mingw-w64-ucrt-x86_64-openssl
             mingw-w64-ucrt-x86_64-opus
             mingw-w64-ucrt-x86_64-python-pip
             mingw-w64-ucrt-x86_64-python-setuptools
             mingw-w64-ucrt-x86_64-hidapi
             mingw-w64-ucrt-x86_64-SDL2
+            mingw-w64-ucrt-x86_64-json-c
+            mingw-w64-ucrt-x86_64-miniupnpc
+            mingw-w64-ucrt-x86_64-qt6-base
+            mingw-w64-ucrt-x86_64-qt6-multimedia
+            mingw-w64-ucrt-x86_64-qt6-tools
 
-      - name: Build and install argp-standalone
-        run: |
-          mkdir -p /tmp/argp-build
-          python3 -c "
-          h = open('/ucrt64/include/argp.h', 'w')
-          h.write('#ifndef _ARGP_H\n#define _ARGP_H\n#include <stdio.h>\n#include <stddef.h>\n')
-          h.write('struct argp_option { const char *name; int key; const char *arg; int flags; const char *doc; int group; };\n')
-          h.write('struct argp_state { const void *root_argp; int argc; char **argv; int next; unsigned flags; unsigned arg_num; int quoted; void *input; void **child_inputs; void *hook; char *name; FILE *err_stream; FILE *out_stream; void *pstate; };\n')
-          h.write('struct argp { const struct argp_option *options; int (*parser)(int, char*, struct argp_state*); const char *args_doc; const char *doc; const void *children; char *(*help_filter)(int, const char*, void*); const char *argp_domain; };\n')
-          h.write('typedef int error_t;\n')
-          h.write('extern error_t argp_parse(const struct argp*, int, char**, unsigned, int*, void*);\n')
-          h.write('extern void argp_usage(const struct argp_state*);\n')
-          h.write('extern void argp_error(const struct argp_state*, const char*, ...);\n')
-          h.write('extern void argp_help(const struct argp*, FILE*, unsigned, char*);\n')
-          h.write('#define OPTION_HIDDEN 0x2\n#define OPTION_ALIAS 0x4\n#define OPTION_DOC 0x8\n#define OPTION_NO_USAGE 0x10\n')
-          h.write('#define ARGP_ERR_UNKNOWN 7\n#define ARGP_KEY_ARG 0\n#define ARGP_KEY_END 1\n#define ARGP_KEY_NO_ARGS 3\n#define ARGP_KEY_INIT 4\n#define ARGP_KEY_FINI 7\n#define ARGP_KEY_SUCCESS 8\n#define ARGP_KEY_ERROR 9\n')
-          h.write('#endif\n')
-          h.close()
-          c = open('/tmp/argp-build/argp.c', 'w')
-          c.write('#include <argp.h>\n#include <stdlib.h>\n#include <stdio.h>\n#include <string.h>\n')
-          c.write('void argp_usage(const struct argp_state *s) { exit(1); }\n')
-          c.write('void argp_error(const struct argp_state *s, const char *f, ...) { exit(1); }\n')
-          c.write('void argp_help(const struct argp *a, FILE *s, unsigned f, char *n) {}\n')
-          c.write('error_t argp_parse(const struct argp *argp, int argc, char **argv, unsigned flags, int *arg_index, void *input) {\n')
-          c.write('  int i; for(i=1;i<argc;i++) { const struct argp_option *opt=argp->options; int found=0;\n')
-          c.write('    while(opt&&(opt->name||opt->key)) { char sk[3]={45,(char)opt->key,0}; char lk[64]=\"--\";\n')
-          c.write('      if(opt->name) strncat(lk,opt->name,60);\n')
-          c.write('      if((opt->key&&strcmp(argv[i],sk)==0)||(opt->name&&strcmp(argv[i],lk)==0)) {\n')
-          c.write('        char *arg=NULL; if(opt->arg&&i+1<argc) arg=argv[++i];\n')
-          c.write('        argp->parser(opt->key,arg,NULL); found=1; break; } opt++; }\n')
-          c.write('    if(!found) argp->parser(0,argv[i],NULL); }\n')
-          c.write('  argp->parser(1,NULL,NULL); return 0; }\n')
-          c.close()
-          print('Files written OK')
-          "
-          gcc -O2 -I/ucrt64/include -c /tmp/argp-build/argp.c -o /tmp/argp-build/argp.o
-          ar rcs /ucrt64/lib/libargp.a /tmp/argp-build/argp.o
-          ls /ucrt64/lib/libargp.a && echo "argp instalado com sucesso"
-
-      - name: Patch cli/CMakeLists.txt
-        run: |
-          cat > cli/CMakeLists.txt << 'EOF'
-          set(SOURCE include/chiaki-cli.h src/discover.c src/wakeup.c)
-          add_library(chiaki-cli-lib STATIC ${SOURCE})
-          target_include_directories(chiaki-cli-lib PUBLIC "include")
-          target_link_libraries(chiaki-cli-lib chiaki-lib)
-          if(CHIAKI_CLI_ARGP_STANDALONE)
-              find_library(ARGP_LIBRARY NAMES argp libargp HINTS /ucrt64/lib)
-              if(ARGP_LIBRARY)
-                  target_link_libraries(chiaki-cli-lib "${ARGP_LIBRARY}")
-                  target_include_directories(chiaki-cli-lib PUBLIC /ucrt64/include)
-              else()
-                  message(FATAL_ERROR "argp library not found!")
-              endif()
-          endif()
-          add_executable(chiaki-cli src/main.c)
-          target_link_libraries(chiaki-cli chiaki-cli-lib)
-          install(TARGETS chiaki-cli)
-          EOF
-
-      - name: Install Protoc and Python Tools
+      - name: Install Protoc
         run: |
           curl -LO https://github.com/protocolbuffers/protobuf/releases/download/v3.20.3/protoc-3.20.3-win64.zip
           unzip protoc-3.20.3-win64.zip -d protoc3
@@ -106,9 +49,8 @@ jobs:
         run: |
           cmake -S . -B build -G "Ninja" \
             -DCMAKE_BUILD_TYPE=Release \
-            -DCHIAKI_ENABLE_CLI=ON \
-            -DCHIAKI_ENABLE_GUI=OFF \
-            -DCHIAKI_CLI_ARGP_STANDALONE=ON \
+            -DCHIAKI_ENABLE_CLI=OFF \
+            -DCHIAKI_ENABLE_GUI=ON \
             -DCHIAKI_USE_SYSTEM_NANOPB=OFF \
             -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
             -DPython3_EXECUTABLE=/ucrt64/bin/python3.exe \
@@ -121,7 +63,7 @@ jobs:
       - name: Prepare Artifacts
         run: |
           mkdir -p release
-          cp build/cli/chiaki-cli.exe release/
+          cp build/gui/chiaki.exe release/
           cp /ucrt64/bin/libcrypto-*.dll release/ || true
           cp /ucrt64/bin/libssl-*.dll release/ || true
           cp /ucrt64/bin/libstdc++-6.dll release/ || true
@@ -129,9 +71,11 @@ jobs:
           cp /ucrt64/bin/libwinpthread-*.dll release/ || true
           cp /ucrt64/bin/SDL2.dll release/ || true
           cp /ucrt64/bin/libhidapi-*.dll release/ || true
+          cp /ucrt64/bin/libopus-*.dll release/ || true
+          /ucrt64/bin/windeployqt6 release/chiaki.exe || true
 
       - name: Upload Build
         uses: actions/upload-artifact@v4
         with:
-          name: Chiaki-CLI-AntiRecoil
+          name: Chiaki-Windows
           path: release/
