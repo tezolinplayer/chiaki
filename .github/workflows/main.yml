@@ -38,13 +38,15 @@ jobs:
 
     - name: Build and install argp-standalone
       run: |
-        pacman -S --noconfirm msys/libargp-devel msys/libargp || true
-        # Copia para o prefix do ucrt64
-        cp /usr/lib/libargp.a /ucrt64/lib/ || true
-        cp /usr/include/argp.h /ucrt64/include/ || true
-        # Verifica se funcionou
-        ls /ucrt64/lib/libargp.a
-        ls /ucrt64/include/argp.h
+        curl -LO https://github.com/tom42/argp-standalone/archive/refs/heads/master.tar.gz
+        tar xzf master.tar.gz
+        cd argp-standalone-master
+        cmake -S . -B build -G "Ninja" -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/ucrt64
+        cmake --build build
+        cmake --install build
+        echo "=== Arquivos instalados ==="
+        find /ucrt64/include -name "argp*" 2>/dev/null
+        find /ucrt64/lib -name "libargp*" 2>/dev/null
 
     - name: Patch cli/CMakeLists.txt
       run: |
@@ -59,10 +61,15 @@ jobs:
         if(CHIAKI_CLI_ARGP_STANDALONE)
             find_library(ARGP_LIBRARY NAMES argp libargp argp-standalone
                 HINTS /ucrt64/lib)
-            find_path(ARGP_INCLUDE_DIR argp.h HINTS /ucrt64/include)
+            find_path(ARGP_INCLUDE_DIR argp.h
+                HINTS /ucrt64/include/argp-standalone /ucrt64/include)
+            find_path(ARGP_CONFIG_DIR argp-config.h
+                HINTS /ucrt64/include/argp-standalone /ucrt64/include)
             if(ARGP_LIBRARY)
                 target_link_libraries(chiaki-cli-lib "${ARGP_LIBRARY}")
-                target_include_directories(chiaki-cli-lib PUBLIC "${ARGP_INCLUDE_DIR}")
+                target_include_directories(chiaki-cli-lib PUBLIC
+                    "${ARGP_INCLUDE_DIR}"
+                    "${ARGP_CONFIG_DIR}")
             else()
                 message(FATAL_ERROR "argp library not found!")
             endif()
