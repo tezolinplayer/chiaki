@@ -6,42 +6,40 @@ on:
 jobs:
   build:
     runs-on: windows-latest
-    
     defaults:
       run:
         shell: msys2 {0}
     steps:
-    - name: Checkout Repository
-      uses: actions/checkout@v4
-      with:
-        submodules: recursive
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
-    - name: Setup MSYS2
-      uses: msys2/setup-msys2@v2
-      with:
-        msystem: UCRT64
-        update: true
-        install: >-
-          git
-          unzip
-          mingw-w64-ucrt-x86_64-toolchain
-          mingw-w64-ucrt-x86_64-cmake
-          mingw-w64-ucrt-x86_64-ninja
-          mingw-w64-ucrt-x86_64-json-c
-          mingw-w64-ucrt-x86_64-miniupnpc
-          mingw-w64-ucrt-x86_64-openssl
-          mingw-w64-ucrt-x86_64-opus
-          mingw-w64-ucrt-x86_64-python-pip
-          mingw-w64-ucrt-x86_64-python-setuptools
-          mingw-w64-ucrt-x86_64-hidapi
-          mingw-w64-ucrt-x86_64-SDL2
+      - name: Setup MSYS2
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: UCRT64
+          update: true
+          install: >-
+            git
+            unzip
+            mingw-w64-ucrt-x86_64-toolchain
+            mingw-w64-ucrt-x86_64-cmake
+            mingw-w64-ucrt-x86_64-ninja
+            mingw-w64-ucrt-x86_64-json-c
+            mingw-w64-ucrt-x86_64-miniupnpc
+            mingw-w64-ucrt-x86_64-openssl
+            mingw-w64-ucrt-x86_64-opus
+            mingw-w64-ucrt-x86_64-python-pip
+            mingw-w64-ucrt-x86_64-python-setuptools
+            mingw-w64-ucrt-x86_64-hidapi
+            mingw-w64-ucrt-x86_64-SDL2
 
-   - name: Build and install argp-standalone
-      run: |
-        mkdir -p /tmp/argp-build
-
-        python3 << 'PYEOF'
-        argp_h = r"""
+      - name: Build and install argp-standalone
+        run: |
+          mkdir -p /tmp/argp-build
+          python3 << 'PYEOF'
+          argp_h = r"""
 #ifndef _ARGP_H
 #define _ARGP_H
 #include <stdio.h>
@@ -53,9 +51,39 @@ extern "C" {
 #define OPTION_ALIAS    0x4
 #define OPTION_DOC      0x8
 #define OPTION_NO_USAGE 0x10
-struct argp_option { const char *name; int key; const char *arg; int flags; const char *doc; int group; };
-struct argp_state { const void *root_argp; int argc; char **argv; int next; unsigned flags; unsigned arg_num; int quoted; void *input; void **child_inputs; void *hook; char *name; FILE *err_stream; FILE *out_stream; void *pstate; };
-struct argp { const struct argp_option *options; int (*parser)(int, char*, struct argp_state*); const char *args_doc; const char *doc; const void *children; char *(*help_filter)(int, const char*, void*); const char *argp_domain; };
+struct argp_option {
+    const char *name;
+    int key;
+    const char *arg;
+    int flags;
+    const char *doc;
+    int group;
+};
+struct argp_state {
+    const void *root_argp;
+    int argc;
+    char **argv;
+    int next;
+    unsigned flags;
+    unsigned arg_num;
+    int quoted;
+    void *input;
+    void **child_inputs;
+    void *hook;
+    char *name;
+    FILE *err_stream;
+    FILE *out_stream;
+    void *pstate;
+};
+struct argp {
+    const struct argp_option *options;
+    int (*parser)(int, char*, struct argp_state*);
+    const char *args_doc;
+    const char *doc;
+    const void *children;
+    char *(*help_filter)(int, const char*, void*);
+    const char *argp_domain;
+};
 typedef int error_t;
 extern error_t argp_parse(const struct argp*, int, char**, unsigned, int*, void*);
 extern void argp_usage(const struct argp_state*);
@@ -74,10 +102,7 @@ extern void argp_help(const struct argp*, FILE*, unsigned, char*);
 #endif
 #endif
 """
-        with open("/ucrt64/include/argp.h", "w") as f:
-            f.write(argp_h)
-
-        argp_c = r"""
+          argp_c = r"""
 #include <argp.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -109,78 +134,78 @@ error_t argp_parse(const struct argp *argp, int argc, char **argv, unsigned flag
     return 0;
 }
 """
-        with open("/tmp/argp-build/argp.c", "w") as f:
-            f.write(argp_c)
-        PYEOF
+          with open("/ucrt64/include/argp.h", "w") as f:
+              f.write(argp_h)
+          with open("/tmp/argp-build/argp.c", "w") as f:
+              f.write(argp_c)
+          PYEOF
+          gcc -O2 -I/ucrt64/include -c /tmp/argp-build/argp.c -o /tmp/argp-build/argp.o
+          ar rcs /ucrt64/lib/libargp.a /tmp/argp-build/argp.o
+          echo "=== Instalado ==="
+          ls /ucrt64/lib/libargp.a
+          ls /ucrt64/include/argp.h
 
-        gcc -O2 -I/ucrt64/include -c /tmp/argp-build/argp.c -o /tmp/argp-build/argp.o
-        ar rcs /ucrt64/lib/libargp.a /tmp/argp-build/argp.o
-        echo "=== Instalado ==="
-        ls /ucrt64/lib/libargp.a
-        ls /ucrt64/include/argp.h
+      - name: Patch cli/CMakeLists.txt
+        run: |
+          cat > cli/CMakeLists.txt << 'EOF'
+          set(SOURCE
+              include/chiaki-cli.h
+              src/discover.c
+              src/wakeup.c)
+          add_library(chiaki-cli-lib STATIC ${SOURCE})
+          target_include_directories(chiaki-cli-lib PUBLIC "include")
+          target_link_libraries(chiaki-cli-lib chiaki-lib)
+          if(CHIAKI_CLI_ARGP_STANDALONE)
+              find_library(ARGP_LIBRARY NAMES argp libargp HINTS /ucrt64/lib)
+              if(ARGP_LIBRARY)
+                  target_link_libraries(chiaki-cli-lib "${ARGP_LIBRARY}")
+                  target_include_directories(chiaki-cli-lib PUBLIC /ucrt64/include)
+              else()
+                  message(FATAL_ERROR "argp library not found!")
+              endif()
+          endif()
+          add_executable(chiaki-cli src/main.c)
+          target_link_libraries(chiaki-cli chiaki-cli-lib)
+          install(TARGETS chiaki-cli)
+          EOF
 
-    - name: Patch cli/CMakeLists.txt
-      run: |
-        cat > cli/CMakeLists.txt << 'EOF'
-        set(SOURCE
-            include/chiaki-cli.h
-            src/discover.c
-            src/wakeup.c)
-        add_library(chiaki-cli-lib STATIC ${SOURCE})
-        target_include_directories(chiaki-cli-lib PUBLIC "include")
-        target_link_libraries(chiaki-cli-lib chiaki-lib)
-        if(CHIAKI_CLI_ARGP_STANDALONE)
-            find_library(ARGP_LIBRARY NAMES argp libargp
-                HINTS /ucrt64/lib)
-            if(ARGP_LIBRARY)
-                target_link_libraries(chiaki-cli-lib "${ARGP_LIBRARY}")
-                target_include_directories(chiaki-cli-lib PUBLIC /ucrt64/include)
-            else()
-                message(FATAL_ERROR "argp library not found!")
-            endif()
-        endif()
-        add_executable(chiaki-cli src/main.c)
-        target_link_libraries(chiaki-cli chiaki-cli-lib)
-        install(TARGETS chiaki-cli)
-        EOF
+      - name: Install Protoc and Python Tools
+        run: |
+          curl -LO https://github.com/protocolbuffers/protobuf/releases/download/v3.20.3/protoc-3.20.3-win64.zip
+          unzip protoc-3.20.3-win64.zip -d protoc3
+          cp protoc3/bin/protoc.exe /ucrt64/bin/
+          python3 -m pip install "protobuf<=3.20.3" setuptools
 
-    - name: Install Protoc and Python Tools
-      run: |
-        curl -LO https://github.com/protocolbuffers/protobuf/releases/download/v3.20.3/protoc-3.20.3-win64.zip
-        unzip protoc-3.20.3-win64.zip -d protoc3
-        cp protoc3/bin/protoc.exe /ucrt64/bin/
-        python3 -m pip install "protobuf<=3.20.3" setuptools
+      - name: Configure CMake
+        run: |
+          cmake -S . -B build -G "Ninja" \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCHIAKI_ENABLE_CLI=ON \
+            -DCHIAKI_ENABLE_GUI=OFF \
+            -DCHIAKI_CLI_ARGP_STANDALONE=ON \
+            -DCHIAKI_USE_SYSTEM_NANOPB=OFF \
+            -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
+            -DPython3_EXECUTABLE=/ucrt64/bin/python3.exe \
+            -DPYTHON_EXECUTABLE=/ucrt64/bin/python3.exe \
+            -Wno-dev
 
-    - name: Configure CMake
-      run: |
-        cmake -S . -B build -G "Ninja" \
-          -DCMAKE_BUILD_TYPE=Release \
-          -DCHIAKI_ENABLE_CLI=ON \
-          -DCHIAKI_ENABLE_GUI=OFF \
-          -DCHIAKI_CLI_ARGP_STANDALONE=ON \
-          -DCHIAKI_USE_SYSTEM_NANOPB=OFF \
-          -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
-          -DPython3_EXECUTABLE=/ucrt64/bin/python3.exe \
-          -DPYTHON_EXECUTABLE=/ucrt64/bin/python3.exe \
-          -Wno-dev
+      - name: Build
+        run: cmake --build build
 
-    - name: Build
-      run: cmake --build build
+      - name: Prepare Artifacts
+        run: |
+          mkdir -p release
+          cp build/cli/chiaki-cli.exe release/
+          cp /ucrt64/bin/libcrypto-*.dll release/ || true
+          cp /ucrt64/bin/libssl-*.dll release/ || true
+          cp /ucrt64/bin/libstdc++-6.dll release/ || true
+          cp /ucrt64/bin/libgcc_s_*.dll release/ || true
+          cp /ucrt64/bin/libwinpthread-*.dll release/ || true
+          cp /ucrt64/bin/SDL2.dll release/ || true
+          cp /ucrt64/bin/libhidapi-*.dll release/ || true
 
-    - name: Prepare Artifacts
-      run: |
-        mkdir -p release
-        cp build/cli/chiaki-cli.exe release/
-        cp /ucrt64/bin/libcrypto-*.dll release/ || true
-        cp /ucrt64/bin/libssl-*.dll release/ || true
-        cp /ucrt64/bin/libstdc++-6.dll release/ || true
-        cp /ucrt64/bin/libgcc_s_*.dll release/ || true
-        cp /ucrt64/bin/libwinpthread-*.dll release/ || true
-        cp /ucrt64/bin/SDL2.dll release/ || true
-        cp /ucrt64/bin/libhidapi-*.dll release/ || true
-
-    - name: Upload Build
-      uses: actions/upload-artifact@v4
-      with:
-        name: Chiaki-CLI-AntiRecoil
-        path: release/
+      - name: Upload Build
+        uses: actions/upload-artifact@v4
+        with:
+          name: Chiaki-CLI-AntiRecoil
+          path: release/
