@@ -6,6 +6,7 @@
 #include <chiaki/http.h>
 #include <chiaki/base64.h>
 #include <chiaki/random.h>
+#include <chiaki/antirecoil.h> // <--- INJEÇÃO DO ANTI-RECOIL AQUI
 
 #include <stdlib.h>
 #include <string.h>
@@ -284,14 +285,33 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_session_join(ChiakiSession *session)
 	return chiaki_thread_join(&session->session_thread, NULL);
 }
 
+// AQUI ESTÁ A MÁGICA DO RECOIL MODIFICADA
 CHIAKI_EXPORT ChiakiErrorCode chiaki_session_set_controller_state(ChiakiSession *session, ChiakiControllerState *state)
 {
 	ChiakiErrorCode err = chiaki_mutex_lock(&session->stream_connection.feedback_sender_mutex);
 	if(err != CHIAKI_ERR_SUCCESS)
 		return err;
-	session->controller_state = *state;
+
+	// --- INÍCIO DA INJEÇÃO DO ANTI-RECOIL ---
+	static bool recoil_initialized = false;
+	if (!recoil_initialized) {
+		chiaki_antirecoil_init();
+		recoil_initialized = true;
+	}
+
+	// Cria uma cópia dos botões que você apertou
+	ChiakiControllerState state_copy = *state;
+	
+	// Passa a cópia pelo nosso filtro que puxa o analógico para baixo
+	chiaki_antirecoil_process(&state_copy);
+	
+	// Salva a cópia adulterada na sessão
+	session->controller_state = state_copy;
+	// --- FIM DA INJEÇÃO ---
+
 	if(session->stream_connection.feedback_sender_active)
 		chiaki_feedback_sender_set_controller_state(&session->stream_connection.feedback_sender, &session->controller_state);
+	
 	chiaki_mutex_unlock(&session->stream_connection.feedback_sender_mutex);
 	return CHIAKI_ERR_SUCCESS;
 }
