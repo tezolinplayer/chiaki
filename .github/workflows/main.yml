@@ -32,15 +32,12 @@ jobs:
           mingw-w64-x86_64-ninja
           mingw-w64-x86_64-json-c
           mingw-w64-x86_64-miniupnpc
-          mingw-w64-x86_64-ffmpeg
           mingw-w64-x86_64-openssl
           mingw-w64-x86_64-opus
           mingw-w64-x86_64-python-pip
           mingw-w64-x86_64-hidapi
           mingw-w64-x86_64-SDL2
-          mingw-w64-x86_64-libplacebo
-          mingw-w64-x86_64-vulkan-headers
-          mingw-w64-x86_64-libunwind
+          mingw-w64-x86_64-argp-standalone
 
     - name: Install Protoc 3.20 and Python Tools
       run: |
@@ -56,6 +53,7 @@ jobs:
           -DCHIAKI_ENABLE_CLI=ON \
           -DCHIAKI_ENABLE_GUI=OFF \
           -DCHIAKI_ENABLE_TESTS=OFF \
+          -DCHIAKI_CLI_ARGP_STANDALONE=ON \
           -DCHIAKI_USE_SYSTEM_NANOPB=OFF \
           -DCMAKE_POLICY_VERSION_MINIMUM=3.5
 
@@ -71,6 +69,8 @@ jobs:
         cp /mingw64/bin/libstdc++-6.dll release/ || true
         cp /mingw64/bin/libgcc_s_seh-1.dll release/ || true
         cp /mingw64/bin/libwinpthread-1.dll release/ || true
+        cp /mingw64/bin/SDL2.dll release/ || true
+        cp /mingw64/bin/libhidapi-*.dll release/ || true
 
     - name: Upload Build
       uses: actions/upload-artifact@v4
