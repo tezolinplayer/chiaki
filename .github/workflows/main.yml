@@ -26,6 +26,7 @@ jobs:
         update: true
         install: >-
           git
+          unzip
           mingw-w64-x86_64-toolchain
           mingw-w64-x86_64-cmake
           mingw-w64-x86_64-ninja
@@ -37,7 +38,6 @@ jobs:
           mingw-w64-x86_64-ffmpeg
           mingw-w64-x86_64-openssl
           mingw-w64-x86_64-opus
-          mingw-w64-x86_64-protobuf
           mingw-w64-x86_64-python-pip
           mingw-w64-x86_64-hidapi
           mingw-w64-x86_64-SDL2
@@ -51,8 +51,11 @@ jobs:
         ls -l lib/src/antirecoil.c
         ls -l lib/include/chiaki/antirecoil.h
 
-    - name: Install Python Protobuf
+    - name: Install Protoc 3.20 and Python Protobuf
       run: |
+        curl -LO https://github.com/protocolbuffers/protobuf/releases/download/v3.20.3/protoc-3.20.3-win64.zip
+        unzip protoc-3.20.3-win64.zip -d protoc3
+        cp protoc3/bin/protoc.exe /mingw64/bin/
         python3 -m pip install "protobuf<=3.20.3"
 
     - name: Configure CMake
@@ -81,7 +84,6 @@ jobs:
         cp /mingw64/bin/libcrypto-*.dll release/ || true
         cp /mingw64/bin/libssl-*.dll release/ || true
         cp /mingw64/bin/libopus-*.dll release/ || true
-        cp /mingw64/bin/libprotobuf-*.dll release/ || true
         cp /mingw64/bin/libhidapi-*.dll release/ || true
         cp /mingw64/bin/SDL2.dll release/ || true
         cp /mingw64/bin/libjson-c-*.dll release/ || true
