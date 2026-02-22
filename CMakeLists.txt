@@ -23,9 +23,12 @@ find_package(Threads REQUIRED)
 find_package(OpenSSL REQUIRED)
 
 if(CHIAKI_CLI_ARGP_STANDALONE)
-    find_library(ARGP_LIBRARY NAMES argp libargp)
-    # Força a inclusão da biblioteca encontrada
-    link_libraries(${ARGP_LIBRARY})
+    # Tenta achar a biblioteca por vários nomes possíveis
+    find_library(ARGP_LIBRARY NAMES argp libargp argp-standalone)
+    if(ARGP_LIBRARY)
+        message(STATUS "Biblioteca ARGP encontrada em: ${ARGP_LIBRARY}")
+        link_libraries(${ARGP_LIBRARY})
+    endif()
 endif()
 
 add_definitions(-DCHIAKI_VERSION=\"${CHIAKI_VERSION}\")
