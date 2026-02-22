@@ -36,11 +36,12 @@ jobs:
           mingw-w64-ucrt-x86_64-hidapi
           mingw-w64-ucrt-x86_64-SDL2
 
-    - name: Build and install argp-standalone
+   - name: Build and install argp-standalone
       run: |
         mkdir -p /tmp/argp-build
 
-        cat > /ucrt64/include/argp.h << 'ARGP_H'
+        python3 << 'PYEOF'
+        argp_h = r"""
 #ifndef _ARGP_H
 #define _ARGP_H
 #include <stdio.h>
@@ -52,39 +53,9 @@ extern "C" {
 #define OPTION_ALIAS    0x4
 #define OPTION_DOC      0x8
 #define OPTION_NO_USAGE 0x10
-struct argp_option {
-    const char *name;
-    int key;
-    const char *arg;
-    int flags;
-    const char *doc;
-    int group;
-};
-struct argp_state {
-    const void *root_argp;
-    int argc;
-    char **argv;
-    int next;
-    unsigned flags;
-    unsigned arg_num;
-    int quoted;
-    void *input;
-    void **child_inputs;
-    void *hook;
-    char *name;
-    FILE *err_stream;
-    FILE *out_stream;
-    void *pstate;
-};
-struct argp {
-    const struct argp_option *options;
-    int (*parser)(int, char*, struct argp_state*);
-    const char *args_doc;
-    const char *doc;
-    const void *children;
-    char *(*help_filter)(int, const char*, void*);
-    const char *argp_domain;
-};
+struct argp_option { const char *name; int key; const char *arg; int flags; const char *doc; int group; };
+struct argp_state { const void *root_argp; int argc; char **argv; int next; unsigned flags; unsigned arg_num; int quoted; void *input; void **child_inputs; void *hook; char *name; FILE *err_stream; FILE *out_stream; void *pstate; };
+struct argp { const struct argp_option *options; int (*parser)(int, char*, struct argp_state*); const char *args_doc; const char *doc; const void *children; char *(*help_filter)(int, const char*, void*); const char *argp_domain; };
 typedef int error_t;
 extern error_t argp_parse(const struct argp*, int, char**, unsigned, int*, void*);
 extern void argp_usage(const struct argp_state*);
@@ -102,9 +73,11 @@ extern void argp_help(const struct argp*, FILE*, unsigned, char*);
 }
 #endif
 #endif
-ARGP_H
+"""
+        with open("/ucrt64/include/argp.h", "w") as f:
+            f.write(argp_h)
 
-        cat > /tmp/argp-build/argp.c << 'ARGP_C'
+        argp_c = r"""
 #include <argp.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -135,7 +108,10 @@ error_t argp_parse(const struct argp *argp, int argc, char **argv, unsigned flag
     argp->parser(ARGP_KEY_END, NULL, NULL);
     return 0;
 }
-ARGP_C
+"""
+        with open("/tmp/argp-build/argp.c", "w") as f:
+            f.write(argp_c)
+        PYEOF
 
         gcc -O2 -I/ucrt64/include -c /tmp/argp-build/argp.c -o /tmp/argp-build/argp.o
         ar rcs /ucrt64/lib/libargp.a /tmp/argp-build/argp.o
