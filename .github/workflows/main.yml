@@ -36,6 +36,17 @@ jobs:
           mingw-w64-ucrt-x86_64-hidapi
           mingw-w64-ucrt-x86_64-SDL2
 
+    - name: Build and install argp-standalone
+      run: |
+        curl -LO https://www.lysator.liu.se/~nisse/misc/argp-standalone-1.3.tar.gz
+        tar xzf argp-standalone-1.3.tar.gz
+        cd argp-standalone-1.3
+        ./configure --prefix=/ucrt64
+        make
+        make install
+        cp libargp.a /ucrt64/lib/
+        cp argp.h /ucrt64/include/
+
     - name: Patch cli/CMakeLists.txt
       run: |
         cat > cli/CMakeLists.txt << 'EOF'
@@ -47,9 +58,12 @@ jobs:
         target_include_directories(chiaki-cli-lib PUBLIC "include")
         target_link_libraries(chiaki-cli-lib chiaki-lib)
         if(CHIAKI_CLI_ARGP_STANDALONE)
-            find_library(ARGP_LIBRARY NAMES argp libargp argp-standalone)
+            find_library(ARGP_LIBRARY NAMES argp libargp argp-standalone
+                HINTS /ucrt64/lib)
+            find_path(ARGP_INCLUDE_DIR argp.h HINTS /ucrt64/include)
             if(ARGP_LIBRARY)
                 target_link_libraries(chiaki-cli-lib "${ARGP_LIBRARY}")
+                target_include_directories(chiaki-cli-lib PUBLIC "${ARGP_INCLUDE_DIR}")
             else()
                 message(FATAL_ERROR "argp library not found!")
             endif()
@@ -75,6 +89,8 @@ jobs:
           -DCHIAKI_CLI_ARGP_STANDALONE=ON \
           -DCHIAKI_USE_SYSTEM_NANOPB=OFF \
           -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
+          -DPython3_EXECUTABLE=/ucrt64/bin/python3.exe \
+          -DPYTHON_EXECUTABLE=/ucrt64/bin/python3.exe \
           -Wno-dev
 
     - name: Build
