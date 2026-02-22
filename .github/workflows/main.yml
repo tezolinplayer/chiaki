@@ -27,7 +27,6 @@ jobs:
         install: >-
           git
           unzip
-          curl
           mingw-w64-ucrt-x86_64-toolchain
           mingw-w64-ucrt-x86_64-cmake
           mingw-w64-ucrt-x86_64-ninja
@@ -47,10 +46,6 @@ jobs:
         unzip protoc-3.20.3-win64.zip -d protoc3
         cp protoc3/bin/protoc.exe /ucrt64/bin/
         python3 -m pip install "protobuf<=3.20.3" setuptools --break-system-packages || true
-
-    - name: RESTAURAR O CMAKELISTS ORIGINAL (A Cura)
-      run: |
-        curl -s https://raw.githubusercontent.com/srpc/chiaki/master/CMakeLists.txt -o CMakeLists.txt
 
     - name: Compile argp-standalone & Patch Source
       run: |
