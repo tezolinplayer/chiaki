@@ -43,16 +43,19 @@ jobs:
         curl -LO https://github.com/protocolbuffers/protobuf/releases/download/v3.20.3/protoc-3.20.3-win64.zip
         unzip protoc-3.20.3-win64.zip -d protoc3
         cp protoc3/bin/protoc.exe /ucrt64/bin/
-        python3 -m pip install "protobuf<=3.20.3" setuptools
+        python3 -m pip install "protobuf<=3.20.3" setuptools --break-system-packages || python3 -m pip install "protobuf<=3.20.3" setuptools
 
     - name: Compile argp-standalone (The Hack!)
       run: |
         git clone https://github.com/tom42/argp-standalone.git
         cd argp-standalone
+        # Cirurgia no código: Atualiza a função antiga para o padrão do compilador GCC 15
+        sed -i 's/extern int getopt ();/extern int getopt (int, char *const *, const char *);/g' src/argp-getopt.h
         cmake -S . -B build -G "Ninja" -DCMAKE_BUILD_TYPE=Release
         cmake --build build
         cp argp.h /ucrt64/include/
-        cp build/libargp.a /ucrt64/lib/ || true
+        cp build/libargp.a /ucrt64/lib/libargp.a || true
+        cp build/libargp.a /ucrt64/lib/libargp-standalone.a || true
 
     - name: Configure CMake
       run: |
