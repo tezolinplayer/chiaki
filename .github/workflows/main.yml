@@ -45,17 +45,20 @@ jobs:
         cp protoc3/bin/protoc.exe /ucrt64/bin/
         python3 -m pip install "protobuf<=3.20.3" setuptools --break-system-packages || python3 -m pip install "protobuf<=3.20.3" setuptools
 
-    - name: Compile argp-standalone (The Hack!)
+    - name: Compile argp-standalone & Patch Discover (The Hack!)
       run: |
         git clone https://github.com/tom42/argp-standalone.git
         cd argp-standalone
         sed -i 's/extern int getopt ();/extern int getopt (int, char *const *, const char *);/g' src/argp-getopt.h
         cmake -S . -B build -G "Ninja" -DCMAKE_BUILD_TYPE=Release
         cmake --build build
-        # Busca Implacável: Encontra e copia os arquivos gerados onde quer que estejam
         find . -name "argp.h" -exec cp {} /ucrt64/include/ \;
         find build -name "*.a" -exec cp {} /ucrt64/lib/libargp.a \;
         find build -name "*.a" -exec cp {} /ucrt64/lib/libargp-standalone.a \;
+        cd ..
+        # Cirurgia: Apaga a linha que pede o netdb.h (que não existe no Windows)
+        sed -i 's/#include <netdb.h>//g' cli/src/discover.c
+        sed -i 's/#include <netdb.h>//g' cli/src/wakeup.c
 
     - name: Configure CMake
       run: |
