@@ -38,6 +38,7 @@ jobs:
           mingw-w64-x86_64-openssl
           mingw-w64-x86_64-opus
           mingw-w64-x86_64-protobuf
+          mingw-w64-x86_64-python-pip
           mingw-w64-x86_64-hidapi
           mingw-w64-x86_64-SDL2
           mingw-w64-x86_64-libplacebo
@@ -50,11 +51,16 @@ jobs:
         ls -l lib/src/antirecoil.c
         ls -l lib/include/chiaki/antirecoil.h
 
+    - name: Install Python Protobuf
+      run: |
+        python3 -m pip install protobuf
+
     - name: Configure CMake
       run: |
         cmake -S . -B build -G "Ninja" \
           -DCMAKE_BUILD_TYPE=Release \
           -DCHIAKI_ENABLE_CLI=OFF \
+          -DCHIAKI_ENABLE_TESTS=OFF \
           -DCMAKE_POLICY_VERSION_MINIMUM=3.5
 
     - name: Build
