@@ -18,9 +18,11 @@ set(CHIAKI_VERSION "2.1.1")
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 set(CMAKE_CXX_STANDARD 11)
 
-# GARANTIR QUE O COMPILADOR ACHE O ARGP NO UCRT64
-include_directories(/ucrt64/include)
-link_directories(/ucrt64/lib)
+# A MARRETA: Força o compilador a olhar nas pastas onde o pacote foi instalado
+include_directories("C:/msys64/ucrt64/include")
+include_directories("/ucrt64/include")
+link_directories("C:/msys64/ucrt64/lib")
+link_directories("/ucrt64/lib")
 
 find_package(PythonInterp 3 REQUIRED)
 find_package(Threads REQUIRED)
@@ -29,6 +31,7 @@ find_package(OpenSSL REQUIRED)
 if(CHIAKI_CLI_ARGP_STANDALONE)
     find_library(ARGP_LIBRARY NAMES argp libargp argp-standalone)
     if(ARGP_LIBRARY)
+        message(STATUS "ENCONTREI A BIBLIOTECA ARGP: ${ARGP_LIBRARY}")
         link_libraries(${ARGP_LIBRARY})
     endif()
 endif()
