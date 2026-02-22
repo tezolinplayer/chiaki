@@ -6,15 +6,14 @@ macro(tri_option name desc default)
     set_property(CACHE "${name}" PROPERTY STRINGS AUTO ON OFF)
 endmacro()
 
-# CONFIGURAÇÃO ANTI-RECOIL (GHOST MODE)
 option(CHIAKI_ENABLE_TESTS "Enable tests" OFF)
 option(CHIAKI_ENABLE_CLI "Enable CLI" ON)
 option(CHIAKI_ENABLE_GUI "Enable GUI" OFF)
-option(CHIAKI_CLI_ARGP_STANDALONE "Standalone argp" ON) # LIGADO PARA WINDOWS
-
+option(CHIAKI_LIB_ENABLE_OPUS "Use Opus" ON)
 set(CHIAKI_FFMPEG_DEFAULT OFF)
 tri_option(CHIAKI_ENABLE_FFMPEG_DECODER "Enable FFMPEG" OFF)
 set(CHIAKI_USE_SYSTEM_NANOPB OFF CACHE BOOL "" FORCE)
+option(CHIAKI_CLI_ARGP_STANDALONE "Use standalone argp" ON)
 
 set(CHIAKI_VERSION "2.1.1")
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
@@ -24,9 +23,10 @@ find_package(PythonInterp 3 REQUIRED)
 find_package(Threads REQUIRED)
 find_package(OpenSSL REQUIRED)
 
-# Busca a biblioteca de comandos no Windows
+# Busca a biblioteca argp que instalamos via pacman
 if(CHIAKI_CLI_ARGP_STANDALONE)
-    find_library(ARGP_LIBRARY argp)
+    find_library(ARGP_LIBRARY NAMES argp libargp)
+    message(STATUS "ARGP Library: ${ARGP_LIBRARY}")
 endif()
 
 add_definitions(-DCHIAKI_VERSION=\"${CHIAKI_VERSION}\")
